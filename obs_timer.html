@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minuteur OBS</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: transparent;
+            font-family: 'Orbitron', monospace;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+        
+        .timer-container {
+            position: relative;
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 20px 40px;
+            border: 2px solid rgba(64, 224, 255, 0.4);
+            box-shadow: 
+                0 15px 35px rgba(0, 0, 0, 0.2),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            animation: containerPulse 4s ease-in-out infinite;
+            width: 400px;
+            height: 150px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        @keyframes containerPulse {
+            0%, 100% { box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 0 0 rgba(64, 224, 255, 0); }
+            50% { box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 0 30px rgba(64, 224, 255, 0.3); }
+        }
+        
+        .timer-display {
+            position: relative;
+            width: 120px;
+            height: 120px;
+            margin-right: 30px;
+        }
+        
+        .progress-ring {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            transform: rotate(-90deg);
+        }
+        
+        .progress-circle {
+            fill: none;
+            stroke-width: 8;
+            stroke-linecap: round;
+        }
+        
+        .progress-bg {
+            stroke: rgba(255, 255, 255, 0.1);
+        }
+        
+        .progress-bar {
+            stroke: url(#gradient);
+            stroke-dasharray: 880;
+            stroke-dashoffset: 0;
+            transition: stroke-dashoffset 1s linear;
+            filter: drop-shadow(0 0 10px rgba(64, 224, 255, 0.6));
+        }
+        
+        .time-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 32px;
+            font-weight: 900;
+            color: #ffffff;
+            text-shadow: 0 0 30px rgba(64, 224, 255, 0.8);
+            letter-spacing: 2px;
+            animation: timeGlow 2s ease-in-out infinite alternate;
+        }
+        
+        @keyframes timeGlow {
+            from { text-shadow: 0 0 30px rgba(64, 224, 255, 0.8), 0 0 60px rgba(64, 224, 255, 0.4); }
+            to { text-shadow: 0 0 40px rgba(64, 224, 255, 1), 0 0 80px rgba(64, 224, 255, 0.6); }
+        }
+        
+        .status {
+            text-align: center;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 16px;
+            font-weight: 400;
+            letter-spacing: 1px;
+            margin-top: 10px;
+        }
+        
+        .status.running {
+            color: #40e0ff;
+            animation: statusPulse 1.5s ease-in-out infinite;
+        }
+        
+        .status.paused {
+            color: #ffb300;
+        }
+        
+        .status.finished {
+            color: #ff4081;
+            animation: finishedFlash 0.5s ease-in-out infinite alternate;
+        }
+        
+        @keyframes statusPulse {
+            0%, 100% { opacity: 0.7; }
+            50% { opacity: 1; }
+        }
+        
+        @keyframes finishedFlash {
+            from { color: #ff4081; }
+            to { color: #ff6b9d; }
+        }
+        
+        .particles {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            overflow: hidden;
+            border-radius: 30px;
+        }
+        
+        .particle {
+            position: absolute;
+            width: 3px;
+            height: 3px;
+            background: rgba(64, 224, 255, 0.6);
+            border-radius: 50%;
+            animation: float 8s linear infinite;
+        }
+        
+        @keyframes float {
+            0% {
+                transform: translateY(100vh) rotate(0deg);
+                opacity: 0;
+            }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% {
+                transform: translateY(-100px) rotate(360deg);
+                opacity: 0;
+            }
+        }
+        
+        .sync-status {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.5);
+            color: #40e0ff;
+            border-radius: 5px;
+            padding: 5px 10px;
+            font-size: 12px;
+            z-index: 1000;
+            opacity: 0.5;
+            transition: opacity 0.3s;
+        }
+        
+        .sync-status:hover {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="timer-container">
+        <div class="particles" id="particles"></div>
+        
+        <div class="timer-display">
+            <svg class="progress-ring" viewBox="0 0 120 120">
+                <defs>
+                    <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" style="stop-color:#40e0ff;stop-opacity:1" />
+                        <stop offset="50%" style="stop-color:#64b5f6;stop-opacity:1" />
+                        <stop offset="100%" style="stop-color:#9c27b0;stop-opacity:1" />
+                    </linearGradient>
+                </defs>
+                <circle class="progress-circle progress-bg" cx="60" cy="60" r="50"></circle>
+                <circle class="progress-circle progress-bar" cx="60" cy="60" r="50" id="progressBar"></circle>
+            </svg>
+            <div class="time-text" id="timeDisplay">45:00</div>
+        </div>
+    </div>
+    
+    <div class="sync-status" id="syncStatus">En attente de connexion...</div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        class Timer {
+            constructor() {
+                // État initial
+                this.totalTime = 45 * 60; // 45 minutes en secondes par défaut
+                this.timeLeft = this.totalTime;
+                this.isRunning = false;
+                this.isPaused = false;
+                this.startTime = null;
+                
+                // Éléments DOM
+                this.timeDisplay = document.getElementById('timeDisplay');
+                this.progressBar = document.getElementById('progressBar');
+                this.syncStatus = document.getElementById('syncStatus');
+                
+                // Calcul de la circonférence pour l'animation du cercle
+                this.circumference = 2 * Math.PI * 50;
+                this.progressBar.style.strokeDasharray = this.circumference;
+                this.progressBar.style.strokeDashoffset = this.circumference;
+                
+                // Initialisation des particules
+                this.createParticles();
+                
+                // Initialiser Socket.io
+                this.socket = io();
+                
+                // Événements Socket.io
+                this.socket.on('connect', () => {
+                    this.syncStatus.textContent = 'Connecté au serveur';
+                    this.syncStatus.style.color = '#40e0ff';
+                });
+                
+                this.socket.on('disconnect', () => {
+                    this.syncStatus.textContent = 'Déconnecté du serveur';
+                    this.syncStatus.style.color = '#ff4081';
+                });
+                
+                this.socket.on('timerState', (state) => {
+                    this.handleExternalUpdate(state);
+                });
+                
+                // Synchronisation périodique
+                this.syncInterval = setInterval(() => this.updateTimeLeft(), 500);
+            }
+            
+            // Gérer les mises à jour externes
+            handleExternalUpdate(state) {
+                this.totalTime = state.totalTime;
+                this.isPaused = state.isPaused;
+                this.isRunning = state.isRunning;
+                this.startTime = state.startTime;
+                
+                // Calculer le temps restant en fonction du temps de départ et du temps total
+                if (this.isRunning && !this.isPaused && this.startTime) {
+                    const now = Date.now();
+                    const elapsedSeconds = Math.floor((now - this.startTime) / 1000);
+                    this.timeLeft = Math.max(0, this.totalTime - elapsedSeconds);
+                    
+                    if (this.timeLeft <= 0) {
+                        this.finish();
+                    }
+                } else {
+                    this.timeLeft = state.timeLeft;
+                }
+                
+                this.updateDisplay();
+                
+                // Si le minuteur est terminé, lancer l'animation de fin
+                if (this.isRunning === false && this.timeLeft === 0) {
+                    this.celebrateFinish();
+                }
+            }
+            
+            // Mettre à jour le temps restant en fonction du temps de départ
+            updateTimeLeft() {
+                if (this.isRunning && !this.isPaused && this.startTime) {
+                    const now = Date.now();
+                    const elapsedSeconds = Math.floor((now - this.startTime) / 1000);
+                    this.timeLeft = Math.max(0, this.totalTime - elapsedSeconds);
+                    this.updateDisplay();
+                    
+                    if (this.timeLeft <= 0) {
+                        this.finish();
+                    }
+                }
+            }
+            
+            // Terminer le minuteur
+            finish() {
+                this.isRunning = false;
+                this.timeLeft = 0;
+                this.updateDisplay();
+                
+                // Animation finale
+                this.celebrateFinish();
+            }
+            
+            // Mettre à jour l'affichage
+            updateDisplay() {
+                const minutes = Math.floor(this.timeLeft / 60);
+                const seconds = this.timeLeft % 60;
+                this.timeDisplay.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                
+                const progress = (this.totalTime - this.timeLeft) / this.totalTime;
+                const offset = this.circumference - (progress * this.circumference);
+                this.progressBar.style.strokeDashoffset = offset;
+            }
+            
+            // Créer les particules
+            createParticles() {
+                const particlesContainer = document.getElementById('particles');
+                
+                for (let i = 0; i < 15; i++) {
+                    const particle = document.createElement('div');
+                    particle.className = 'particle';
+                    particle.style.left = Math.random() * 100 + '%';
+                    particle.style.animationDelay = Math.random() * 8 + 's';
+                    particle.style.animationDuration = (Math.random() * 4 + 6) + 's';
+                    particlesContainer.appendChild(particle);
+                }
+            }
+            
+            // Célébrer la fin
+            celebrateFinish() {
+                // Effet de celebration avec changement de couleurs
+                const container = document.querySelector('.timer-container');
+                container.style.animation = 'containerPulse 0.3s ease-in-out infinite';
+                
+                setTimeout(() => {
+                    container.style.animation = 'containerPulse 4s ease-in-out infinite';
+                }, 3000);
+            }
+        }
+        
+        // Initialisation du minuteur
+        document.addEventListener('DOMContentLoaded', () => {
+            new Timer();
+        });
+    </script>
+</body>
+</html>

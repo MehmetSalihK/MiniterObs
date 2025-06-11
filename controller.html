@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contrôleur de Minuteur</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: #121212;
+            font-family: 'Orbitron', monospace;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .control-container {
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 20px;
+            padding: 30px;
+            border: 2px solid rgba(64, 224, 255, 0.4);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+            width: 100%;
+            max-width: 500px;
+        }
+        
+        .control-title {
+            text-align: center;
+            color: #40e0ff;
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 30px;
+            text-shadow: 0 0 20px rgba(64, 224, 255, 0.5);
+            letter-spacing: 2px;
+        }
+        
+        .timer-preview {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 30px;
+            text-align: center;
+            border: 1px solid rgba(64, 224, 255, 0.3);
+        }
+        
+        .time-display {
+            font-size: 48px;
+            font-weight: 900;
+            color: #ffffff;
+            text-shadow: 0 0 30px rgba(64, 224, 255, 0.8);
+            letter-spacing: 2px;
+            margin-bottom: 10px;
+        }
+        
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        
+        .btn {
+            background: linear-gradient(145deg, rgba(64, 224, 255, 0.2), rgba(64, 224, 255, 0.1));
+            border: 2px solid rgba(64, 224, 255, 0.4);
+            color: #40e0ff;
+            padding: 15px;
+            border-radius: 15px;
+            font-family: 'Orbitron', monospace;
+            font-weight: 700;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .btn:hover {
+            background: linear-gradient(145deg, rgba(64, 224, 255, 0.3), rgba(64, 224, 255, 0.2));
+            border-color: rgba(64, 224, 255, 0.8);
+            box-shadow: 0 0 25px rgba(64, 224, 255, 0.4);
+            transform: translateY(-2px);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+        }
+        
+        .time-input-group {
+            margin-bottom: 20px;
+        }
+        
+        .time-input-label {
+            display: block;
+            color: #40e0ff;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+        
+        .time-input {
+            background: rgba(0, 0, 0, 0.3);
+            border: 2px solid rgba(64, 224, 255, 0.4);
+            border-radius: 10px;
+            color: #ffffff;
+            font-family: 'Orbitron', monospace;
+            font-size: 18px;
+            padding: 12px;
+            width: 100%;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        
+        .time-input:focus {
+            outline: none;
+            border-color: rgba(64, 224, 255, 0.8);
+            box-shadow: 0 0 15px rgba(64, 224, 255, 0.4);
+        }
+        
+        .status {
+            text-align: center;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 16px;
+            font-weight: 400;
+            letter-spacing: 1px;
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 10px;
+            background: rgba(0, 0, 0, 0.2);
+        }
+        
+        .status.running {
+            color: #40e0ff;
+            background: rgba(64, 224, 255, 0.1);
+        }
+        
+        .status.paused {
+            color: #ffb300;
+            background: rgba(255, 179, 0, 0.1);
+        }
+        
+        .status.finished {
+            color: #ff4081;
+            background: rgba(255, 64, 129, 0.1);
+        }
+        
+        .sync-status {
+            text-align: center;
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 10px;
+            background: rgba(0, 0, 0, 0.2);
+            color: #40e0ff;
+        }
+        
+        .obs-link {
+            display: block;
+            text-align: center;
+            margin-top: 20px;
+            color: #40e0ff;
+            text-decoration: none;
+            font-size: 14px;
+        }
+        
+        .obs-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="control-container">
+        <h1 class="control-title">Contrôleur de Minuteur</h1>
+        
+        <div class="timer-preview">
+            <div class="time-display" id="timeDisplay">45:00</div>
+        </div>
+        
+        <div class="controls">
+            <button class="btn" id="startBtn">Démarrer</button>
+            <button class="btn" id="pauseBtn">Pause</button>
+            <button class="btn" id="resetBtn">Réinitialiser</button>
+            <button class="btn" id="setTimeBtn">Définir</button>
+        </div>
+        
+        <div class="time-input-group">
+            <label class="time-input-label">Définir le temps (minutes):</label>
+            <input type="number" class="time-input" id="minutesInput" min="1" max="999" value="45">
+        </div>
+        
+        <div class="status" id="statusText">Prêt</div>
+        <div class="sync-status" id="syncStatus">En attente de connexion...</div>
+        
+        <a href="http://localhost:3000/obs" target="_blank" class="obs-link">Ouvrir l'affichage OBS (nouvel onglet)</a>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        class TimerController {
+            constructor() {
+                // État initial
+                this.totalTime = 45 * 60; // 45 minutes en secondes par défaut
+                this.timeLeft = this.totalTime;
+                this.isRunning = false;
+                this.isPaused = false;
+                this.interval = null;
+                this.startTime = null;
+                
+                // Éléments DOM
+                this.timeDisplay = document.getElementById('timeDisplay');
+                this.statusText = document.getElementById('statusText');
+                this.startBtn = document.getElementById('startBtn');
+                this.pauseBtn = document.getElementById('pauseBtn');
+                this.resetBtn = document.getElementById('resetBtn');
+                this.setTimeBtn = document.getElementById('setTimeBtn');
+                this.minutesInput = document.getElementById('minutesInput');
+                this.syncStatus = document.getElementById('syncStatus');
+                
+                // Initialiser Socket.io
+                this.socket = io();
+                
+                // Événements Socket.io
+                this.socket.on('connect', () => {
+                    this.syncStatus.textContent = 'Connecté au serveur';
+                    this.syncStatus.style.color = '#40e0ff';
+                });
+                
+                this.socket.on('disconnect', () => {
+                    this.syncStatus.textContent = 'Déconnecté du serveur';
+                    this.syncStatus.style.color = '#ff4081';
+                });
+                
+                this.socket.on('timerState', (state) => {
+                    this.handleExternalUpdate(state);
+                });
+                
+                // Mise à jour de l'affichage
+                this.updateDisplay();
+                
+                // Événements
+                this.startBtn.addEventListener('click', () => this.start());
+                this.pauseBtn.addEventListener('click', () => this.pause());
+                this.resetBtn.addEventListener('click', () => this.reset());
+                this.setTimeBtn.addEventListener('click', () => this.setTime());
+                
+                // Synchronisation périodique
+                this.syncInterval = setInterval(() => this.updateTimeLeft(), 500);
+            }
+            
+            // Envoyer l'état au serveur
+            sendState() {
+                const state = {
+                    totalTime: this.totalTime,
+                    timeLeft: this.timeLeft,
+                    isRunning: this.isRunning,
+                    isPaused: this.isPaused,
+                    startTime: this.startTime
+                };
+                this.socket.emit('updateTimer', state);
+            }
+            
+            // Gérer les mises à jour externes
+            handleExternalUpdate(state) {
+                clearInterval(this.interval);
+                
+                this.totalTime = state.totalTime;
+                this.isPaused = state.isPaused;
+                this.isRunning = state.isRunning;
+                this.startTime = state.startTime;
+                
+                // Calculer le temps restant en fonction du temps de départ et du temps total
+                if (this.isRunning && !this.isPaused && this.startTime) {
+                    const now = Date.now();
+                    const elapsedSeconds = Math.floor((now - this.startTime) / 1000);
+                    this.timeLeft = Math.max(0, this.totalTime - elapsedSeconds);
+                    
+                    if (this.timeLeft > 0) {
+                        this.startTimer();
+                    } else {
+                        this.finish();
+                    }
+                } else {
+                    this.timeLeft = state.timeLeft;
+                }
+                
+                // Mettre à jour le statut et l'affichage
+                this.updateStatus();
+                this.updateDisplay();
+            }
+            
+            // Mettre à jour le temps restant en fonction du temps de départ
+            updateTimeLeft() {
+                if (this.isRunning && !this.isPaused && this.startTime) {
+                    const now = Date.now();
+                    const elapsedSeconds = Math.floor((now - this.startTime) / 1000);
+                    this.timeLeft = Math.max(0, this.totalTime - elapsedSeconds);
+                    this.updateDisplay();
+                    
+                    if (this.timeLeft <= 0) {
+                        this.finish();
+                    }
+                }
+            }
+            
+            // Démarrer le minuteur
+            start() {
+                if (this.isPaused) {
+                    this.isPaused = false;
+                    // Recalculer le temps de départ en fonction du temps restant
+                    this.startTime = Date.now() - ((this.totalTime - this.timeLeft) * 1000);
+                } else if (!this.isRunning) {
+                    this.isRunning = true;
+                    this.startTime = Date.now();
+                } else {
+                    return;
+                }
+                
+                this.updateStatus();
+                this.startTimer();
+                this.sendState();
+            }
+            
+            // Démarrer l'intervalle du minuteur
+            startTimer() {
+                clearInterval(this.interval);
+                this.interval = setInterval(() => {
+                    this.updateTimeLeft();
+                    this.sendState();
+                }, 1000);
+            }
+            
+            // Mettre à jour le statut
+            updateStatus() {
+                if (!this.isRunning) {
+                    this.statusText.textContent = 'Prêt';
+                    this.statusText.className = 'status';
+                } else if (this.isPaused) {
+                    this.statusText.textContent = 'En pause';
+                    this.statusText.className = 'status paused';
+                } else {
+                    this.statusText.textContent = 'En cours';
+                    this.statusText.className = 'status running';
+                }
+            }
+            
+            // Mettre en pause le minuteur
+            pause() {
+                if (this.isRunning && !this.isPaused) {
+                    clearInterval(this.interval);
+                    this.isPaused = true;
+                    this.updateStatus();
+                    this.sendState();
+                }
+            }
+            
+            // Réinitialiser le minuteur
+            reset() {
+                clearInterval(this.interval);
+                this.isRunning = false;
+                this.isPaused = false;
+                this.timeLeft = this.totalTime;
+                this.startTime = null;
+                this.updateDisplay();
+                this.updateStatus();
+                this.sendState();
+            }
+            
+            // Terminer le minuteur
+            finish() {
+                this.isRunning = false;
+                this.timeLeft = 0;
+                clearInterval(this.interval);
+                this.statusText.textContent = 'Terminé!';
+                this.statusText.className = 'status finished';
+                this.sendState();
+            }
+            
+            // Définir le temps
+            setTime() {
+                const minutes = parseInt(this.minutesInput.value) || 45;
+                this.totalTime = minutes * 60;
+                this.reset();
+            }
+            
+            // Mettre à jour l'affichage
+            updateDisplay() {
+                const minutes = Math.floor(this.timeLeft / 60);
+                const seconds = this.timeLeft % 60;
+                this.timeDisplay.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            }
+        }
+        
+        // Initialisation du contrôleur
+        document.addEventListener('DOMContentLoaded', () => {
+            new TimerController();
+        });
+    </script>
+</body>
+</html>
